@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<canvas width="1000" height="600" style="border: solid black;" id="myCanvas">Your browser does not support the HTML5 canvas tag.</canvas>
+
+<script>
+
+function Player(image, left, top, width, height, worldWidth, direction, speed) {
+   this.image = image;
+   this.left = left;
+   this.top = top;
+   this.width = width;
+   this.height = height;
+   this.currDirection = direction;
+   this.worldWidth = worldWidth;
+   this.speed = speed;
+
+   this.draw = function (ctx) {
+      ctx.drawImage(this.image, this.left, this.top);      
+   };
+
+   this.switchDirection = function() {
+      this.currDirection *= -1;
+   };
+
+   this.move = function (direction) {
+      // no direction, then it's NPC, maintain current momentum
+      if (!direction) { 
+         if (Math.random() > 0.95) // occasionally change direction
+            this.switchDirection();
+
+         direction = this.currDirection;
+      }
+
+      if ( (this.left > 0 && direction < 0) || (this.left + this.width < this.worldWidth && direction > 0) )
+         this.left += (direction * this.speed);
+      else 
+         this.switchDirection(); // bumped into border
+   };
+}
+
+function Missile(left, top, direction, isBlocked) {
+   this.x = left;
+   this.y = top;
+   this.direction = direction;
+   this.isBlocked = isBlocked;
+   this.exploded = false;
+
+   this.move = function() {
+      this.y -= (this.direction * 10);
+
+      return !isBlocked(this);
+   }; 
+
+   this.explode = function() {
+      this.exploded = true;
+   };
+
+   this.draw = function(ctx) {
+      ctx.beginPath();
+
+      if (!this.exploded) {
+         ctx.ellipse(this.x, this.y, 5, 16, 0, 0, 2 * Math.PI);
+         ctx.moveTo(this.x - 4, this.y + 11 * this.direction);
+         ctx.lineTo(this.x - 7, this.y + 25 * this.direction);
+         ctx.lineTo(this.x, this.y + 15 * this.direction);
+         ctx.lineTo(this.x + 7, this.y + 25 * this.direction);
+         ctx.lineTo(this.x + 4, this.y + 11 * this.direction);
+         ctx.fillStyle = "red";
+         ctx.fill();    
+      }
+      else {
+         ctx.arc(this.x, this.y, 50, 0, 2 * Math.PI);
+         var grd = ctx.createRadialGradient(this.x, this.y, 20, this.x, this.y, 70);
+         grd.addColorStop(0, "red");
+         grd.addColorStop(1, "white");
+         ctx.fillStyle = grd;
+         ctx.fill();        
+      }
+
+      ctx.stroke();
+   };
+}
+
+function World(canvas, playerImage, enemy1Image, enemy2Image, danceLeftImage, danceRightImage) {
+   var ctx = canvas.getContext('2d');
+   
+   var stars = null;
+   var row = [];
+   
+   var worldWidth = canvas.clientWidth;
+   var worldHeight = canvas.clientHeight;
+
+   var player = new Player(
+      playerImage,
+      (worldWidth / 2) - (playerImage.width / 2), 
+      worldHeight - playerImage.height - 30,
+      playerImage.width + 30,
+      playerImage.height + 30,
+      worldWidth,
+      0,
+      10);
+
+   var enemy1 = new Player(enemy1Image, player.left + 100, 0, enemy1Image.width + 30, enemy1Image.height + 30, canvas.clientWidth, 1, 7);
+   var enemy2 = new Player(enemy2Image, player.left - 100, 0, enemy2Image.width + 30, enemy2Image.height + 30, canvas.clientWidth, -1, 7);
+
+   ctx.font = "20px serif";
+   ctx.fillText("Space to start and pause. Left/Right to move. Up to fire.", worldWidth/2 - 220, worldHeight/2 - 15);   
+
+   var newRow = function() {
+		for (var x = 0; x < worldWidth; x++) {
+			row[x] = Math.random() > 0.999;
+		}
+   };
+   
+   var initializeStars = function() {
+		stars = [];	
+		for (var y = 0; y < worldHeight; y++) {
+			newRow();
+			for (var x = 0; x < worldWidth; x++) {
+				stars[x] = stars[x] || [];
+				stars[x][y] = row[x];
+			}
+		}
+   };
+
+   var dancerX = -900;
+   var isDancerLeft = false;
+   var drawDancer = function(ctx) {
+      var dancer = isDancerLeft ? danceLeftImage : danceRightImage;
+      ctx.drawImage(dancer, dancerX, 200);            
+
+      dancerX += 3;
+      if (dancerX % 30 != 0)
+         return;
+      
+      isDancerLeft = !isDancerLeft;
+      if (dancerX >= worldWidth)
+         dancerX = -900;
+   }; 
+   
+   var playerMissiles = [];
+   var enemyMissiles = [];
+   
+   var tempCanvas = document.createElement('canvas');
+   var tempCtx = tempCanvas.getContext('2d');
+   
+   tempCanvas.width = canvas.width;
+   tempCanvas.height = canvas.height;
+
+   var drawWorld = function() {
+      ctx.fillStyle = "#000000";
+		ctx.fillRect(0, 0, worldWidth, worldHeight);
+		ctx.fillStyle = "#FFFFFF";
+		
+		for (var x = 0; x < worldWidth; x++) {
+			for (var y = 0; y < worldHeight; y++) {
+				if (stars[x][y])
+					ctx.fillRect(x, y, 1, 1);
+			}
+		}
+		
+		player.draw(tempCtx);
+      enemy1.draw(tempCtx);
+      enemy2.draw(tempCtx);
+
+      for (missile of playerMissiles) {
+         missile.draw(tempCtx);
+      }
+
+      for (missile of enemyMissiles) {
+         missile.draw(tempCtx);
+      }
+
+      drawDancer(tempCtx);
+
+      ctx.drawImage(tempCanvas, 0, 0);
+      tempCtx.clearRect(0, 0, canvas.width, canvas.height);
+   };
+   
+   var doLoop = function() {
+		for (var y = 0; y < worldHeight - 1; y++) {
+			for (var x = 0; x < worldWidth; x++) {
+				stars[x][y] = stars[x][y + 1];
+			}
+		}
+
+		newRow();
+		for (var x = 0; x < worldWidth; x++) {
+			stars[x][worldHeight - 1] = row[x];
+		}
+   };
+   
+   var paused = true;
+   var playerDirection = 0;
+   var animationFrameID;
+   var tick = function() {
+      player.move(playerDirection);
+      enemy1.move();
+      enemy2.move();
+
+      if (enemyMissiles.length < 4 && Math.random() > 0.99)
+         enemyMissiles.push(new Missile(enemy1.left + enemy1.width/2, enemy1.top + enemy1.height, -1, isMissileBlocked));
+
+      if (enemyMissiles.length < 4 && Math.random() > 0.99)
+         enemyMissiles.push(new Missile(enemy2.left + enemy2.width/2, enemy2.top + enemy2.height, -1, isMissileBlocked));
+
+      playerMissiles.forEach(function (missile, index) {
+         if (!missile.move()) {
+            playerMissiles.splice(index, 1);
+         }
+      });
+
+      enemyMissiles.forEach(function (missile, index) {
+         if (!missile.move()) {
+            enemyMissiles.splice(index, 1);
+         }
+      });
+
+	   doLoop();
+	   drawWorld();
+
+      animationFrameID = requestAnimationFrame(tick);
+   };
+
+   var collisionDetected = function(missile, player) {
+      return (missile.y >= player.top) && (missile.y <= player.top + player.height) &&
+         (missile.x >= player.left) && (missile.x <= player.left + player.width);
+   };
+
+   var isMissileBlocked = function(missile) {
+      // check world top and bottom borders
+      if ((missile.direction == 1 && missile.y < 1) || (missile.direction == -1 && missile.y + 16 > worldHeight))
+         return true;
+
+      if (missile.direction == 1 && (collisionDetected(missile, enemy1) || collisionDetected(missile, enemy2))) {
+         missile.explode();
+         return false;
+      }
+
+      if (missile.direction == -1 && collisionDetected(missile, player)) {
+         missile.explode();
+         return false;
+      }
+
+      return false;      
+   };
+
+   this.keydown = function(e) {
+      switch(e.which)
+      {
+         case 37: // left, right
+            playerDirection = -1;
+            break;
+         case 38: // up
+            if (playerMissiles.length < 3)
+               playerMissiles.push(new Missile(player.left + 50, player.top, 1, isMissileBlocked));
+            break;
+         case 39: // right
+            playerDirection = 1;
+            break;
+         case 32: // space
+   			if (!stars) {
+   				initializeStars();
+   			}
+   			if (!paused) {
+   				cancelAnimationFrame(animationFrameID);
+   			} else {
+   				animationFrameID = requestAnimationFrame(tick);
+   			}
+   			paused = !paused;
+   			break;
+      }
+   }
+   
+   this.keyup = function(e) {
+      switch(e.which)
+      {
+         case 37:
+            playerDirection = 0;
+            break;
+         case 39:
+            playerDirection = 0;
+            break;
+      }   
+   }
+      
+   return this;
+}
+
+var player = new Image(100, 100);
+player.src = 'player.png';
+
+var enemy1 = new Image(100, 100);
+enemy1.src = 'enemy1.png';
+
+var enemy2 = new Image(100, 100);
+enemy2.src = 'enemy2.png';
+
+var danceLeft = new Image(150, 150);
+danceLeft.src = 'danceLeft.png';
+
+var danceRight = new Image(150, 150);
+danceRight.src = 'danceRight.png';
+
+var world = new World(document.getElementById('myCanvas'),
+	player, enemy1, enemy2, danceLeft, danceRight);
+
+window.onkeydown = function(e) {
+   world.keydown(e);
+}
+
+window.onkeyup = function(e) {
+   world.keyup(e);
+}
+
+</script>
+
+</body>
+</html>
+
