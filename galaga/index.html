@@ -1,5 +1,8 @@
 <!DOCTYPE html>
 <html>
+<head>
+<title>Galaga</title>
+</head>
 <body>
 
 <canvas width="1000" height="600" style="border: solid black;" id="myCanvas">Your browser does not support the HTML5 canvas tag.</canvas>
@@ -23,7 +26,7 @@ function Player(images, left, top, width, height, worldWidth, direction, speed) 
       ctx.drawImage(this.images[currFrameIdx], this.left, this.top);
       
       if (this.images.length > 0) {
-         if (++frames < 30)
+         if (++frames < 15)
             return;
 
          frames = 0;
