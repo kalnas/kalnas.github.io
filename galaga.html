@@ -120,7 +120,7 @@ function World(canvas, playerImage, enemy1Image, enemy2Image, danceLeftImage, da
    var enemy2 = new Player([enemy2Image], player.left - 100, 0, enemy2Image.width + 30, enemy2Image.height + 30, canvas.clientWidth, -1, 7);
 
    var dancer = new Player([danceLeftImage, danceRightImage], -20, 200, 
-      danceRightImage.width, danceRightImage.height, canvas.clientWidth, 1, 3);
+      danceRightImage.width, danceRightImage.height, canvas.clientWidth, 1, 7);
 
    ctx.font = "20px serif";
    ctx.fillText("Space to start and pause. Left/Right to move. Up to fire.", worldWidth/2 - 220, worldHeight/2 - 15);   
@@ -180,7 +180,7 @@ function World(canvas, playerImage, enemy1Image, enemy2Image, danceLeftImage, da
       tempCtx.clearRect(0, 0, canvas.width, canvas.height);
    };
    
-   var doLoop = function() {
+   var scroll = function() {
 		for (var y = 0; y < worldHeight - 1; y++) {
 			for (var x = 0; x < worldWidth; x++) {
 				stars[x][y] = stars[x][y + 1];
@@ -195,8 +195,17 @@ function World(canvas, playerImage, enemy1Image, enemy2Image, danceLeftImage, da
    
    var paused = true;
    var playerDirection = 0;
-   var animationFrameID;
+   var animationFrameId;
+   var timeoutId;
+   var lastTick;
    var tick = function() {
+      timeoutId = setTimeout(tick, 10);
+
+      if (Date.now() - lastTick < 1000/60)
+         return;
+
+      lastTick = Date.now();
+
       player.move(playerDirection);
       enemy1.move();
       enemy2.move();
@@ -220,10 +229,22 @@ function World(canvas, playerImage, enemy1Image, enemy2Image, danceLeftImage, da
          }
       });
 
-	   doLoop();
-	   drawWorld();
+	   scroll();
+   };
 
-      animationFrameID = requestAnimationFrame(tick);
+   var draw = function() {
+      animationFrameId = requestAnimationFrame(draw);
+      drawWorld();      
+   };
+
+   var start = function() {
+      tick();
+      draw();
+   };
+
+   var pause = function() {
+      cancelAnimationFrame(animationFrameId);
+      clearTimeout(timeoutId);
    };
 
    var collisionDetected = function(missile, player) {
@@ -267,9 +288,9 @@ function World(canvas, playerImage, enemy1Image, enemy2Image, danceLeftImage, da
    				initializeStars();
    			}
    			if (!paused) {
-   				cancelAnimationFrame(animationFrameID);
+   				pause();
    			} else {
-   				animationFrameID = requestAnimationFrame(tick);
+   				start();
    			}
    			paused = !paused;
    			break;
