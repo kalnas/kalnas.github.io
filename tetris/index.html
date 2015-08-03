@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<div>
+<canvas width="250" height="500" style="border: solid black;" id="myCanvas">Your browser does not support the HTML5 canvas tag.</canvas>
+<br>
+<div id="status">n: play, arrows: control<br> space: pause/resume, ctrl: drop</div>
+<div id="lines">0 lines</div>
+<div>Kal Nasser</div>
+</div>
+
+<script>
+function Board(canvas) {
+   var ctx = canvas.getContext('2d');
+   var board = [];
+   var background = 'white';
+   var piece = null;
+   var self = this;
+
+   var Piece = function() {
+      var shape = ["J", "L", "I", "S", "Z", "O", "W"] [ Math.floor( Math.random() * 7 ) ];
+	  this.preventRotate = false;
+	  
+      switch (shape)
+      {
+         case 'J':
+            this.color = 'red';
+            this.blocks = [ {x: 3, y: 0}, {x: 3, y: 1}, {x: 4, y: 1}, {x: 5, y: 1} ];
+            break;
+            
+         case 'L':
+            this.color = 'blue';
+            this.blocks = [ {x: 3, y: 1}, {x: 4, y: 1}, {x: 5, y: 1}, {x: 5, y: 0} ];
+            break;
+
+         case 'I':
+            this.color = 'gray';
+            this.blocks = [ {x: 3, y: 0}, {x: 4, y: 0}, {x: 5, y: 0}, {x: 6, y: 0} ];
+            break;
+
+         case 'S':
+            this.color = 'green';
+            this.blocks = [ {x: 3, y: 1}, {x: 4, y: 1}, {x: 4, y: 0}, {x: 5, y: 0} ];
+            break;
+
+         case 'Z':
+            this.color = 'yellow';
+            this.blocks = [ {x: 3, y: 0}, {x: 4, y: 0}, {x: 4, y: 1}, {x: 5, y: 1} ];
+            break;
+
+         case 'O':
+            this.color = 'orange';
+            this.preventRotate = true;
+            this.blocks = [ {x: 3, y: 0}, {x: 3, y: 1}, {x: 4, y: 0}, {x: 4, y: 1} ];
+            break;
+
+         case 'W':
+            this.color = 'brown';
+            this.blocks = [ {x: 3, y: 1}, {x: 4, y: 1}, {x: 4, y: 0}, {x: 5, y: 1} ];
+            break;            
+      }
+      
+      return this;
+   };
+   
+   var drawBoard = function() {
+      var siz = 25;
+      for(var x = 0; x <= 9; x++) {
+         for(var y = 0; y <= 19; y++) {
+            ctx.fillStyle = board[x][y];
+            ctx.fillRect(x * siz, y * siz, siz, siz);
+            
+            if (board[x][y] != background) {
+               ctx.beginPath();
+               ctx.strokeStyle = "black";
+               ctx.moveTo((x * siz) + 1, (y * siz) + siz - 1);
+               ctx.lineTo((x * siz) + 1, (y * siz) + 1);
+               ctx.lineTo((x * siz) + siz - 1, (y * siz) + 1);
+               ctx.stroke();
+               
+               ctx.beginPath();
+               ctx.strokeStyle = "gray";
+               ctx.moveTo((x * siz) + siz - 1, (y * siz) + 1);
+               ctx.lineTo((x * siz) + siz - 1, (y * siz) + siz - 1);
+               ctx.lineTo((x * siz) + 1, (y * siz) + siz - 1);
+               ctx.stroke();               
+            }
+         }
+      }
+   };
+
+   var plot = function(color) {
+      board[piece.blocks[0].x][piece.blocks[0].y] = 
+      board[piece.blocks[1].x][piece.blocks[1].y] = 
+      board[piece.blocks[2].x][piece.blocks[2].y] = 
+      board[piece.blocks[3].x][piece.blocks[3].y] = color || piece.color;
+   };
+
+   var transform = function(newPiece) {
+      if (piece) {
+         plot(background);
+         
+         newPiece.color = piece.color;
+         newPiece.preventRotate = piece.preventRotate;
+      }
+      
+      var oldPiece = piece;
+      piece = newPiece;
+      
+      var canPlot = 
+         piece.blocks.reduce( function(valid, block) { // test every block of the piece
+            return valid && ( // previous piece is valid
+               (  block.x <= 9  &&  // current piece is within board limits
+                  block.x >= 0  && 
+                  block.y <= 19 && 
+                  block.y >= 0  && 
+                  board[block.x][block.y] == background) ||  // and is unoccupied
+               block.y < 0); // allow exceeding upper border
+         }, true);
+      
+      if (!canPlot) {
+         piece = oldPiece || piece;
+      }
+      
+      plot();
+      drawBoard();            
+      return canPlot;
+   };
+   
+   var moveDown = function() {
+      return (piece != null) && 
+         transform({
+            blocks: [ {x: piece.blocks[0].x, y: piece.blocks[0].y + 1}, {x: piece.blocks[1].x, y: piece.blocks[1].y + 1},
+					  {x: piece.blocks[2].x, y: piece.blocks[2].y + 1}, {x: piece.blocks[3].x, y: piece.blocks[3].y + 1} ]
+         });
+   };
+   
+   var moveLeft = function() {
+      return (piece != null) && 
+         transform({
+            blocks: [ {x: piece.blocks[0].x - 1, y: piece.blocks[0].y}, {x: piece.blocks[1].x - 1, y: piece.blocks[1].y},
+					  {x: piece.blocks[2].x - 1, y: piece.blocks[2].y}, {x: piece.blocks[3].x - 1, y: piece.blocks[3].y} ]
+         });
+   };
+
+   var moveRight = function() {
+      return (piece != null) && 
+         transform({
+            blocks: [ {x: piece.blocks[0].x + 1, y: piece.blocks[0].y}, {x: piece.blocks[1].x + 1, y: piece.blocks[1].y},
+					  {x: piece.blocks[2].x + 1, y: piece.blocks[2].y}, {x: piece.blocks[3].x + 1, y: piece.blocks[3].y} ]
+         });
+   };
+
+   var rotate = function() {
+      return piece != null && !piece.preventRotate &&
+         transform({
+            blocks: [ {x: piece.blocks[2].x - (piece.blocks[2].y - piece.blocks[0].y) * -1, y: piece.blocks[2].y - (piece.blocks[2].x - piece.blocks[0].x)},
+					  {x: piece.blocks[2].x - (piece.blocks[2].y - piece.blocks[1].y) * -1, y: piece.blocks[2].y - (piece.blocks[2].x - piece.blocks[1].x)},
+					  {x: piece.blocks[2].x,                                  y: piece.blocks[2].y},
+				      {x: piece.blocks[2].x - (piece.blocks[2].y - piece.blocks[3].y) * -1, y: piece.blocks[2].y - (piece.blocks[2].x - piece.blocks[3].x)} ]         
+         });
+   };
+   
+   var clearBoard = function() {
+      for(var x = 0; x <= 9; x++) {
+         for(var y = 0; y <= 19; y++) {
+            board[x] = board[x] || [];
+            board[x][y] = background;
+         }
+      }
+      drawBoard();      
+   };
+   
+   var clearRows = function() {
+      var rowComplete;
+      var numRows = 0;
+      
+      for(var y = 0; y <= 19; y++) {
+         rowComplete = board.reduce( function(blockOccupied, row) {
+                     return blockOccupied && (row[y] != background);
+                  }, true);
+
+         
+         if (rowComplete) {
+            numRows++;
+            for(var yi = y; yi >= 0; yi--) {
+               for(var xi = 0; xi <= 9; xi++) {
+                  board[xi][yi] = yi > 0 ? board[xi][yi-1] : background;
+               }
+            }
+         }
+      }
+
+      drawBoard();      
+      return numRows;
+   };
+   
+   var paused = false;
+   var tick = function() {
+      if (paused) {
+         self.gamePaused();
+         return;
+      }
+      
+      if (!piece) { // if no piece currently in play
+         if (!transform(Piece())) {  // make one
+            self.gameOver();
+            return;
+         }
+      }
+      else if (!moveDown()) {  // else move it down
+         piece = null;     // release it if it can't move down
+         self.linesCleared( clearRows() );  // clear any complete lines
+      }
+
+      setTimeout(function() {tick();}, 500);      
+   };
+   
+   this.gameOver = function() {};
+   this.linesCleared = function(num) {};
+   this.gamePaused = function() {};
+   this.gameResumed = function() {};
+   this.newGame = function() {};
+   
+   var drop = function() {
+      while (moveDown());
+   };
+   
+   var start = function() {
+		self.newGame();
+		clearBoard();
+		tick();
+   };
+   
+   var pauseResume = function() {
+		paused = !paused;
+		if (!paused) {
+		   self.gameResumed();
+		   self.linesCleared(0);
+		   tick();
+		}   
+   };
+
+   this.command = function(e) {
+      switch(e.which)
+      {
+         case 78:
+			start();
+			break;
+         case 37:
+            moveLeft();
+            break;
+         case 38:
+            rotate();
+            break;
+         case 39:
+            moveRight();
+            break;
+         case 40:
+            moveDown();               
+            break;
+         case 17:
+            drop();
+            break;
+         case 32:
+			pauseResume();
+			break;
+      }
+   }
+      
+   return this;
+}
+
+var brd = new Board(document.getElementById('myCanvas'));
+
+brd.gameOver = function() {
+   document.getElementById("status").innerHTML = "Game Over";
+}
+
+var num = 0;
+brd.linesCleared = function(n) {
+   document.getElementById("lines").innerHTML = (num += n) + " lines.";
+}
+
+brd.gamePaused = function(n) {
+   document.getElementById("status").innerHTML = "Paused";
+}
+
+brd.gameResumed = function(n) {
+   document.getElementById("status").innerHTML = "Playing";
+}
+
+brd.newGame = function() {
+   document.getElementById("status").innerHTML = "Playing";
+}
+
+window.onkeydown = function(e) {
+   brd.command(e);
+}
+
+</script>
+
+</body>
+</html>
+
