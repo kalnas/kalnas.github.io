@@ -18,7 +18,7 @@ function Player(images, left, top, width, height, worldWidth, direction, speed) 
    this.height = height;
    this.currDirection = direction;
    this.worldWidth = worldWidth;
-   this.speed = speed;
+   this.speed = speed; // pixel per ms
    
    this.currFrameIdx = 0;
    this.frames = 0;
@@ -44,7 +44,7 @@ Player.prototype = {
       this.currDirection *= -1;
    },
 
-   move: function (direction) {
+   move: function (timePassed, direction) {
       // no direction, maintain current momentum
       if (!direction) { 
          if (Math.random() > 0.95) // occasionally change direction
@@ -54,7 +54,7 @@ Player.prototype = {
       }
 
       if ( (this.left > 0 && direction < 0) || (this.left + this.width < this.worldWidth && direction > 0) )
-         this.left += (direction * this.speed);
+         this.left += (direction * this.speed * timePassed);
       else 
          this.switchDirection(); // bumped into border
    }
@@ -70,8 +70,8 @@ function Missile(left, top, direction, isBlocked) {
 }
 
 Missile.prototype = {
-   move: function() {
-      this.y -= (this.direction * 10);
+   move: function(timePassed) {
+      this.y -= (this.direction * timePassed * .5); // constant speed: .5 px / 1 ms
 
       return !this.isBlocked(this);
    },
@@ -171,13 +171,13 @@ function World(canvas, playerImage, enemy1Image, enemy2Image, danceLeftImage, da
       playerImage.height + 30,
       worldWidth,
       0,
-      10);
+      .5);
 
-   var enemy1 = new Player([enemy1Image], player.left + 100, 0, enemy1Image.width + 30, enemy1Image.height + 30, canvas.clientWidth, 1, 7);
-   var enemy2 = new Player([enemy2Image], player.left - 100, 0, enemy2Image.width + 30, enemy2Image.height + 30, canvas.clientWidth, -1, 7);
+   var enemy1 = new Player([enemy1Image], player.left + 100, 0, enemy1Image.width + 30, enemy1Image.height + 30, canvas.clientWidth, 1, .2);
+   var enemy2 = new Player([enemy2Image], player.left - 100, 0, enemy2Image.width + 30, enemy2Image.height + 30, canvas.clientWidth, -1, .2);
 
    var dancer = new Player([danceLeftImage, danceRightImage], -20, 200, 
-      danceRightImage.width, danceRightImage.height, canvas.clientWidth, 1, 7);
+      danceRightImage.width, danceRightImage.height, canvas.clientWidth, 1, .2);
 
    ctx.font = "20px serif";
    ctx.fillText("Space to start and pause. Left/Right to move. Up to fire.", worldWidth/2 - 220, worldHeight/2 - 15);   
@@ -220,18 +220,18 @@ function World(canvas, playerImage, enemy1Image, enemy2Image, danceLeftImage, da
    var animationFrameId;
    var timeoutId;
    var lastTick;
+   var timeElapsed = 0;
    var tick = function() {
-      timeoutId = setTimeout(tick, 10);
+      timeoutId = setTimeout(tick, 0);
 
-      if (Date.now() - lastTick < 1000/60)
-         return;
+      var currTick = Date.now();
+      timeElapsed = currTick - lastTick;
+      lastTick = currTick;
 
-      lastTick = Date.now();
-
-      player.move(playerDirection);
-      enemy1.move();
-      enemy2.move();
-      dancer.move();
+      player.move(timeElapsed, playerDirection);
+      enemy1.move(timeElapsed);
+      enemy2.move(timeElapsed);
+      dancer.move(timeElapsed);
 
       if (enemyMissiles.length < 4 && Math.random() > 0.99)
          enemyMissiles.push(new Missile(enemy1.left + enemy1.width/2, enemy1.top + enemy1.height, -1, isMissileBlocked));
@@ -240,13 +240,13 @@ function World(canvas, playerImage, enemy1Image, enemy2Image, danceLeftImage, da
          enemyMissiles.push(new Missile(enemy2.left + enemy2.width/2, enemy2.top + enemy2.height, -1, isMissileBlocked));
 
       playerMissiles.forEach(function (missile, index) {
-         if (!missile.move()) {
+         if (!missile.move(timeElapsed)) {
             playerMissiles.splice(index, 1);
          }
       });
 
       enemyMissiles.forEach(function (missile, index) {
-         if (!missile.move()) {
+         if (!missile.move(timeElapsed)) {
             enemyMissiles.splice(index, 1);
          }
       });
@@ -260,6 +260,7 @@ function World(canvas, playerImage, enemy1Image, enemy2Image, danceLeftImage, da
    };
 
    var start = function() {
+      lastTick = Date.now();
       tick();
       draw();
    };
