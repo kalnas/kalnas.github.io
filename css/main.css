@@ -70,11 +70,6 @@ div.spacer {
 	height: 5px;
 }
 
-.img-width-fix {
-	overflow: hidden;
-	margin-right: -4px;
-}
-
 @media all and (max-width: 1024px) {
 	div.card {
 	    width: 50%;

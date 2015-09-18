@@ -3,6 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="description" content="Kal Nasser's contact information">
+    <meta name="keywords" content="Kal Nasser">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href='https://fonts.googleapis.com/css?family=Source+Code+Pro' rel='stylesheet' type='text/css'>
     <link href="css/main.css" rel="stylesheet" media="all">
@@ -39,14 +40,14 @@
                 </div>
 
                 <div>
-                    <img src="https://static.licdn.com/scds/common/u/img/webpromo/btn_in_20x15.png" alt="LinkedIn icon" class="img-width-fix">
+                    <img alt="LinkedIn" id="linkedInIcon"/>
                     <a href="https://www.linkedin.com/in/KalNasser">
                         <span class="link-caption">linkedin.com/in/KalNasser</span>
                     </a>
                 </div>
 
                 <div>
-                    <img src="https://g.twimg.com/twitter-bird-16x16.png" alt="Twitter icon">       
+                    <img alt="Twitter" id="twitterIcon"/>         
                     <a href="https://twitter.com/Kal_Nasser"> 
                         <span class="link-caption">twitter.com/Kal_Nasser</span>
                     </a>
@@ -58,4 +59,36 @@
         </div>
     </main>
 </body>
+
+<script>
+    document.getElementById("linkedInIcon").src = 
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAAAPCAYAAAA71pVKAAAAAXNSR0IArs4c6QAAAARnQU1BAAC" +
+            "xjwv8YQUAAAAJcEhZcwAADsQAAA7EAZUrDhsAAADwSURBVDhPY/wPBPItBxl+//7NQCxgZWVleFhjz8AoWbf7P68ANwMvNxtU" +
+            "ijD48PEHw7cv3xmYQBxSNIKAAD8HmAZr/vrjJxifSTMGYxgfH2b4+xuimVzAKFm97T8XPx+USzz4/voVAxPjr98M//7/AuM7p" +
+            "dZgjI8Nw4xfvwI1f/3E8PPXTzCGAWT2vTJHKAvCRlbLxPD3L5iBC0i37ABjdPD/90+g5p8/oFzSAOPvP0BnA00gB4D0MTEg+Y" +
+            "8UwPjnLwOjbGDb/79GhlAh4gHTpcuQRML4/A1YgFgAUs/45w8DOFfJBbVDhYkHj9ZVMgAA552XFnnv6T8AAAAASUVORK5CYII=";
+
+    document.getElementById("twitterIcon").src = 
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJb" +
+            "WFnZVJlYWR5ccllPAAAA2hpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1w" +
+            "Q2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFh" +
+            "NUCBDb3JlIDUuMy1jMDExIDY2LjE0NTY2MSwgMjAxMi8wMi8wNi0xNDo1NjoyNyAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cm" +
+            "RmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvd" +
+            "XQ9IiIgeG1sbnM6eG1wTU09Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9tbS8iIHhtbG5zOnN0UmVmPSJodHRwOi8vbnMu" +
+            "YWRvYmUuY29tL3hhcC8xLjAvc1R5cGUvUmVzb3VyY2VSZWYjIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzE" +
+            "uMC8iIHhtcE1NOk9yaWdpbmFsRG9jdW1lbnRJRD0ieG1wLmRpZDpGNzdGMTE3NDA3MjA2ODExOTk0Q0JDNjhBREQ3QkU0OSIgeG" +
+            "1wTU06RG9jdW1lbnRJRD0ieG1wLmRpZDpFODYxM0VGQUFGMkExMUUxOTBFOUZEM0JFQjVCNTNBRCIgeG1wTU06SW5zdGFuY2VJR" +
+            "D0ieG1wLmlpZDpFODYxM0VGOUFGMkExMUUxOTBFOUZEM0JFQjVCNTNBRCIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3No" +
+            "b3AgQ1M1LjEgTWFjaW50b3NoIj4gPHhtcE1NOkRlcml2ZWRGcm9tIHN0UmVmOmluc3RhbmNlSUQ9InhtcC5paWQ6MDM4MDExNzQ" +
+            "wNzIwNjgxMThDMTRDQkRDMUUyOEQ1OEQiIHN0UmVmOmRvY3VtZW50SUQ9InhtcC5kaWQ6Rjc3RjExNzQwNzIwNjgxMTk5NENCQz" +
+            "Y4QUREN0JFNDkiLz4gPC9yZGY6RGVzY3JpcHRpb24+IDwvcmRmOlJERj4gPC94OnhtcG1ldGE+IDw/eHBhY2tldCBlbmQ9InIiP" +
+            "z5d82l2AAACE0lEQVR42mL8//8/AyWAiYFCwHLgwAEGx0OfBfbb8X7ApgAkB6TqgdgAiB8AcSNQ7QOonAIjQ+MmA0ZmlgX///5x" +
+            "QDcEpBkod+C/qJw+Awc3A8PvnwyMrx59/P/7x3ygtAM/D08bk7yYsOR/BV19oMILQA0GKM5jZU0CyTEISzEwcPMzMAiIMfxXNuB" +
+            "nkFAqYFYxVP7LxhXEpC/B/xRk+n9lQ3kgfR5oyHyQ00AGiEpIyYBtRgbMLAwgA1UEubZ/zjFvZBSbcMBNRMsw9dqnvyFgBR9eMT" +
+            "C8egR07o8HLOLyLH9EZGWwhc3/YEFVYPjdYVEQ4ft+6v7jELAzQQDoTDD+/VPhD46Q52NlvAPSDI7Gk9GG57UUZddgqGJlh2AsQ" +
+            "PT/j9NwHzk4OPzi5Bd89ZWJjfH1z/8q/xgY2AjFfY7s/1zFX68fwhPSxQfPbly588D0z58/PIQ0K3Iz7WgyETsJjykQsTHE4C2Q" +
+            "ivc5+iXk2ue/+ve//vPA5feJWsx1QP//QDEAKPAHGHV/xCRlWD6wcOsy8Ili1bzJgjPNXoz9/IF7SGkFqLEBSOcD41vg1R+gj3j" +
+            "5UNM6I8MXfQHmtb067AuBmg+DLEOWZwTmRoXjb39rTLn7y+Tml78qz7//V2ZnZvgixMb4Up2H+U6OMtsZS2HWG0C1T9A1wwyAeQ" +
+            "WUaXigGKQQ5M8voKQF5WMFAAEGAPZkw8s7EntAAAAAAElFTkSuQmCC";  
+</script>
 </html>
