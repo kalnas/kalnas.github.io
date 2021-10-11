@@ -1,19 +1,44 @@
 <!-- JavaScript Tetris -- Kal Nasser -->
 <!DOCTYPE html>
 <html>
-    <head>
-        <title>Tetris</title>
-    </head>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">        
+    <title>Tetris</title>
+</head>
+
+<style>
+.board {
+    padding: 0;
+    margin: auto;
+    display: block;
+    width: 250px;
+}
+#myCanvas {
+    padding: 0;
+    margin: auto;
+    display: block;
+}
+</style>
+
 <body>
 
-<div>
-    <canvas width="250" height="500" style="border: solid black;" id="myCanvas">
-        This browser does not support the HTML5 canvas tag.
-    </canvas>
+<canvas width="250" height="500" style="border: solid black;" id="myCanvas">
+    This browser does not support the HTML canvas.
+</canvas>
 
-    <br>
-    <div id="status">n: play, arrows: control<br> space: pause/resume, ctrl: drop</div>
-    <div id="lines">0 lines</div>
+<div class="board">
+    <span id="lines">0 lines</span>&nbsp;&nbsp;<span id="status"></span>
+    <div>
+        <button id="newBtn">(N)ew</button>
+        <button id="pauseBtn">(P)ause</button>
+    </div>
+    <div>
+        <button id="leftBtn">&larr;</button>
+        <button id="rightBtn">&rarr;</button>
+        <button id="upBtn">&uarr;</button>
+        <button id="downBtn">&darr;</button>
+        <button id="dropBtn">&darr;&darr;(D)</button>
+    </div>        
 </div>
 
 <script>
@@ -232,33 +257,6 @@ class Board {
             this.tick();
         }
     }
-
-    command(e) {
-        if (e.which === 78 && !this.currPiece) {
-            this.start();            
-        } else if (this.currPiece) {
-            switch(e.which) {
-                case 37:
-                    this.moveLeft();
-                    break;
-                case 38:
-                    this.rotate();
-                    break;
-                case 39:
-                    this.moveRight();
-                    break;
-                case 40:
-                    this.moveDown();               
-                    break;
-                case 17:
-                    this.drop();
-                    break;
-                case 32:
-                    this.pauseResume();
-                    break;
-            }
-        }
-    }
 } 
 
 
@@ -277,10 +275,12 @@ brd.linesCleared = function(n) {
 
 brd.gamePaused = function() {
     document.getElementById('status').innerHTML = 'Paused';
+    document.getElementById('pauseBtn').innerHTML = '(R)esume';
 }
 
 brd.gameResumed = function() {
     document.getElementById('status').innerHTML = 'Playing';
+    document.getElementById('pauseBtn').innerHTML = '(P)ause';
 }
 
 brd.newGame = function() {
@@ -289,8 +289,61 @@ brd.newGame = function() {
 }
 
 window.onkeydown = function(e) {
-    brd.command(e);
+    if (e.which === 78 && !brd.currPiece) {
+            brd.start();            
+        } else if (brd.currPiece) {
+            switch(e.which) {
+                case 37:
+                    brd.moveLeft();
+                    break;
+                case 38:
+                    brd.rotate();
+                    break;
+                case 39:
+                    brd.moveRight();
+                    break;
+                case 40:
+                    brd.moveDown();               
+                    break;
+                case 68:
+                    brd.drop();
+                    break;
+                case 80:
+                case 82:
+                    brd.pauseResume();
+                    break;
+            }
+        }
 }
+
+document.querySelectorAll('button').forEach(btn => { 
+    btn.addEventListener("click", function(event) {
+        if (!brd.currPiece && event.target.id === 'newBtn') {
+            brd.start();
+        } else if (brd.currPiece) {
+            switch(event.target.id) {
+                case 'pauseBtn':
+                    brd.pauseResume();
+                    break;
+                case 'leftBtn':
+                    brd.moveLeft();
+                    break;
+                case 'rightBtn':
+                    brd.moveRight();
+                    break;
+                case 'downBtn':
+                    brd.moveDown();
+                    break;
+                case 'upBtn':
+                    brd.rotate();
+                    break;
+                case 'dropBtn':
+                    brd.drop();
+                    break;
+            }
+        }
+    });
+});
 
 </script>
 
