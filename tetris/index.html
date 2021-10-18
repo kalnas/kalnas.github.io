@@ -21,6 +21,17 @@
 body {
     touch-action: manipulation;
 }
+button.ctrl {
+    height: 30px;
+    width: 50px;
+    margin-bottom: 10px;
+}
+div.ctrls {
+    padding: 0;
+    margin: auto;
+    display: block;
+    width: 180px; 
+}
 </style>
 
 <body>
@@ -35,12 +46,14 @@ body {
         <button id="newBtn">(N)ew</button>
         <button id="pauseBtn">(P)ause</button>
     </div>
-    <div>
-        <button id="leftBtn">&larr;</button>
-        <button id="rightBtn">&rarr;</button>
-        <button id="upBtn">&uarr;</button>
-        <button id="downBtn">&darr;</button>
-        <button id="dropBtn">&darr;&darr;(D)</button>
+    <div class="ctrls">
+        <button class="ctrl" id="leftBtn">&larr;</button>
+        <button class="ctrl" id="upBtn">&uarr;</button>
+        <button class="ctrl" id="rightBtn">&rarr;</button>        
+    </div>
+    <div class="ctrls">
+        <button class="ctrl" id="downBtn">&darr;</button>
+        <button class="ctrl" id="dropBtn">&darr;&darr;(D)</button>
     </div>        
 </div>
 
@@ -80,7 +93,26 @@ class Piece {
         }        
     ];
 
-    constructor(prev, deltaX, deltaY, rotated) {
+    static MOVE = {
+        LEFT: {
+            deltaX: 0,
+            deltaY: -1
+        },
+        RIGHT: {
+            deltaX: 0,
+            deltaY: 1
+        },
+        DOWN: {
+            deltaX: 1,
+            deltaY: 0
+        },
+        ROTATE: {
+            deltaX: 0,
+            deltaY: 0
+        }
+    };
+
+    constructor(prev, move) {
         if (!prev) { // new, random piece
             const shapeIdx = Math.floor( Math.random() * 7 );
             this.allowRotation = !Piece.SHAPE_DEFS[shapeIdx].nonRotatable;
@@ -89,9 +121,9 @@ class Piece {
         } else { // clone a previous piece
             this.allowRotation = prev.allowRotation;
             this.color = prev.color;
-            this.blocks = prev.blocks.map((block) => ({x: block.x + deltaX, y: block.y + deltaY}));
+            this.blocks = prev.blocks.map((block) => ({x: block.x + move.deltaX, y: block.y + move.deltaY}));
 
-            if (rotated && this.allowRotation) {
+            if (move === Piece.MOVE.ROTATE && this.allowRotation) {
                 for (let i = 0; i < 4; i++) {
                     this.blocks[i] = {
                         y: prev.blocks[2].y - (prev.blocks[2].x - prev.blocks[i].x) * -1, 
@@ -185,7 +217,7 @@ class Board {
         this.drawBoard();
     }
    
-   clearCompletedRows() {
+    clearCompletedRows() {
         let completedRows = 0;
         for(let x = 0; x < Board.NUM_ROWS; x++) {
             const rowComplete = !this.board[x].includes(Board.BACKGROUND);
@@ -202,29 +234,13 @@ class Board {
         this.drawBoard();      
         return completedRows;
     }
-
-    moveDown() {
-        return this.transform(new Piece(this.currPiece, 1, 0));
-    }
-   
-    moveLeft() {
-        return this.transform(new Piece(this.currPiece, 0, -1));
-    }
-
-    moveRight() {
-        return this.transform(new Piece(this.currPiece, 0, 1));        
-    }
-
-    rotate() {
-        return this.transform(new Piece(this.currPiece, 0, 0, true));
-    }    
       
     tick() {
         if (this.paused) {
             return;
         }
 
-        if (!this.moveDown()) { // If we can't move down any more,
+        if (!brd.transform(new Piece(brd.currPiece, Piece.MOVE.DOWN))) { // If we can't move down anymore,
             const completedRows = this.clearCompletedRows(); // clear completed rows if any,
             this.linesCleared(completedRows);
             this.currPiece = null; // then release current piece.
@@ -237,12 +253,6 @@ class Board {
         setTimeout(() => {
             this.tick();
         }, 500);      
-    }
-   
-    drop() {
-        while(this.moveDown()) {
-            // drop all the way
-        }
     }
    
     start() {
@@ -297,19 +307,19 @@ window.onkeydown = function(e) {
         } else if (brd.currPiece) {
             switch(e.which) {
                 case 37:
-                    brd.moveLeft();
+                    brd.transform(new Piece(brd.currPiece, Piece.MOVE.LEFT));
                     break;
                 case 38:
-                    brd.rotate();
+                    brd.transform(new Piece(brd.currPiece, Piece.MOVE.ROTATE));
                     break;
                 case 39:
-                    brd.moveRight();
+                    brd.transform(new Piece(brd.currPiece, Piece.MOVE.RIGHT));
                     break;
                 case 40:
-                    brd.moveDown();               
+                    brd.transform(new Piece(brd.currPiece, Piece.MOVE.DOWN));
                     break;
                 case 68:
-                    brd.drop();
+                    while(brd.transform(new Piece(brd.currPiece, Piece.MOVE.DOWN)));
                     break;
                 case 80:
                 case 82:
@@ -329,19 +339,19 @@ document.querySelectorAll('button').forEach(btn => {
                     brd.pauseResume();
                     break;
                 case 'leftBtn':
-                    brd.moveLeft();
+                    brd.transform(new Piece(brd.currPiece, Piece.MOVE.LEFT));
                     break;
                 case 'rightBtn':
-                    brd.moveRight();
+                    brd.transform(new Piece(brd.currPiece, Piece.MOVE.RIGHT));
                     break;
                 case 'downBtn':
-                    brd.moveDown();
+                    brd.transform(new Piece(brd.currPiece, Piece.MOVE.DOWN));
                     break;
                 case 'upBtn':
-                    brd.rotate();
+                    brd.transform(new Piece(brd.currPiece, Piece.MOVE.ROTATE));
                     break;
                 case 'dropBtn':
-                    brd.drop();
+                    while(brd.transform(new Piece(brd.currPiece, Piece.MOVE.DOWN)));
                     break;
             }
         }
