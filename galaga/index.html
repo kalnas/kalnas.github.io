@@ -1,372 +1,373 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Galaga</title>
+<title>Space Invaders</title>
 </head>
 <body>
 
-<canvas width="1000" height="600" style="border: solid black;" id="myCanvas">Your browser does not support the HTML5 canvas tag.</canvas>
-<div>Kal Nasser</div>
+<canvas width="1000" height="600" style="border: solid black;" id="myCanvas"></canvas>
+<div><b>[n]ew game<br>[space] to pause/resume<br>&lArr; / &rArr; to move<br>&uArr; to fire</b></div>
+
 <script>
 
 // ============  Player class =====================================================
-function Player(images, left, top, width, height, worldWidth, direction, speed) {
-   this.images = images;
-   this.left = left;
-   this.top = top;
-   this.width = width;
-   this.height = height;
-   this.currDirection = direction;
-   this.worldWidth = worldWidth;
-   this.speed = speed; // pixel per ms
-   
-   this.currFrameIdx = 0;
-   this.frames = 0;
+class Player {
+  constructor(image, left, top, width, height, worldWidth, direction, speed) {
+    this.image = image;
+    this.left = left;
+    this.top = top;
+    this.width = width;
+    this.height = height;
+    this.currDirection = direction;
+    this.worldWidth = worldWidth;
+    this.speed = speed; // pixels per ms
+  }
+
+  draw(ctx) {
+    ctx.drawImage(this.image, this.left, this.top, 100, 100);
+  }
+
+  switchDirection() {
+    this.currDirection *= -1;
+  }
+
+  move(timePassed, direction) {
+    // no direction, maintain current momentum
+    if (!direction) { 
+      if (Math.random() > 0.99) { // occasionally change direction
+        this.switchDirection();
+      }
+
+      direction = this.currDirection;
+    }
+
+    if ( (this.left > 0 && direction < 0) 
+      || (this.left + this.width < this.worldWidth && direction > 0) ) {
+      this.left += (direction * this.speed * timePassed);
+    } else {
+      this.switchDirection(); // bumped into border
+    }
+  }
 }
 
-Player.prototype = {
-   draw: function (ctx) {
-      ctx.drawImage(this.images[this.currFrameIdx], this.left, this.top);
-      
-      if (this.images.length > 0) {
-         if (++this.frames < 15)
-            return;
-
-         this.frames = 0;
-         this.currFrameIdx++;
-  
-         if (this.currFrameIdx >= this.images.length)
-            this.currFrameIdx = 0;
-      }
-   },
-
-   switchDirection: function() {
-      this.currDirection *= -1;
-   },
-
-   move: function (timePassed, direction) {
-      // no direction, maintain current momentum
-      if (!direction) { 
-         if (Math.random() > 0.95) // occasionally change direction
-            this.switchDirection();
-
-         direction = this.currDirection;
-      }
-
-      if ( (this.left > 0 && direction < 0) || (this.left + this.width < this.worldWidth && direction > 0) )
-         this.left += (direction * this.speed * timePassed);
-      else 
-         this.switchDirection(); // bumped into border
-   }
-};
 
 // ============== Missile class ======================
-function Missile(left, top, direction, isBlocked) {
-   this.x = left;
-   this.y = top;
-   this.direction = direction;
-   this.isBlocked = isBlocked;
-   this.exploded = false;
+// Each missile is aware of the locations of all characters
+// in order to detect when it collides with them.
+class Missile {
+  constructor(left, top, direction, player, opponent1, opponent2, viewHeight, reportHit) {
+    this.x = left;
+    this.y = top;
+    this.direction = direction;
+    this.exploded = false;
+    this.player = player;
+    this.opponent1 = opponent1;
+    this.opponent2 = opponent2;
+    this.viewHeight = viewHeight;
+    this.reportHit = reportHit;
+  }
+
+  collisionDetected(character) {
+    return (this.y >= character.top)
+      && (this.y <= character.top + character.height)
+      && (this.x >= character.left)
+      && (this.x <= character.left + character.width);    
+  }
+
+  move(timePassed) {
+    // constant speed: .5 px / 1 ms
+    this.y -= (this.direction * timePassed * .5);
+
+    // Hitting world's borders
+    if ((this.direction == 1 && this.y < 1) || (this.direction == -1 && this.y + 16 > this.viewHeight)) {
+      return false;
+    }
+
+    // Hitting intended targets...
+    if (this.direction == 1 && (this.collisionDetected(this.opponent1) || this.collisionDetected(this.opponent2))) {
+      this.explode();
+      return true;
+    }
+
+    if (this.direction == -1 && this.collisionDetected(this.player)) {
+      this.explode();
+      return true;
+    }
+
+    return true;      
+  }
+
+  explode() {
+    this.exploded = true;
+    this.reportHit && this.reportHit();
+    this.reportHit = null;
+  }
+
+  draw(ctx) {
+    ctx.beginPath();
+
+    if (!this.exploded) {
+      ctx.arc(this.x, this.y, 15, 0, 2 * Math.PI);
+      ctx.fillStyle = "red";
+    } else {
+      ctx.arc(this.x, this.y, 50, 0, 2 * Math.PI);
+      let grd = ctx.createRadialGradient(this.x, this.y, 20, this.x, this.y, 70);
+      grd.addColorStop(0, "red");
+      grd.addColorStop(1, "white");
+      ctx.fillStyle = grd;     
+    }
+
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = "white";
+   }
 }
 
-Missile.prototype = {
-   move: function(timePassed) {
-      this.y -= (this.direction * timePassed * .5); // constant speed: .5 px / 1 ms
 
-      return !this.isBlocked(this);
-   },
-
-   explode: function() {
-      this.exploded = true;
-   },
-
-   draw: function(ctx) {
-      ctx.beginPath();
-
-      if (!this.exploded) {
-         ctx.ellipse(this.x, this.y, 5, 16, 0, 0, 2 * Math.PI);
-         ctx.moveTo(this.x - 4, this.y + 11 * this.direction);
-         ctx.lineTo(this.x - 7, this.y + 25 * this.direction);
-         ctx.lineTo(this.x, this.y + 15 * this.direction);
-         ctx.lineTo(this.x + 7, this.y + 25 * this.direction);
-         ctx.lineTo(this.x + 4, this.y + 11 * this.direction);
-         ctx.fillStyle = "red";
-         ctx.fill();    
-      }
-      else {
-         ctx.arc(this.x, this.y, 50, 0, 2 * Math.PI);
-         var grd = ctx.createRadialGradient(this.x, this.y, 20, this.x, this.y, 70);
-         grd.addColorStop(0, "red");
-         grd.addColorStop(1, "white");
-         ctx.fillStyle = grd;
-         ctx.fill();        
-      }
-
-      ctx.stroke();
-      ctx.fillStyle = "white";
-   }
-};
 
 // =========================== Space ==========================================
-function Space(worldWidth, worldHeight) {
-   
-   this.worldWidth = worldWidth;
-   this.worldHeight = worldHeight;
+// This is just the background of stars in the sky.
+class Space {
+  constructor(worldWidth, worldHeight) {
+    this.worldWidth = worldWidth;
+    this.worldHeight = worldHeight;
+    this.row = [];
+    this.stars = [];
 
-   var row = [];
-   var stars = []; 
-
-   var newRow = function() {
-      for (var x = 0; x < worldWidth; x++) {
-         row[x] = Math.random() > 0.999;
+    for (let y = 0; y < this.worldHeight; y++) {
+      this.newRow();
+      for (let x = 0; x < this.worldWidth; x++) {
+        this.stars[x] = this.stars[x] || [];
+        this.stars[x][y] = this.row[x];
       }
-   };
+    }
+  }
 
-   for (var y = 0; y < worldHeight; y++) {
-      newRow();
-      for (var x = 0; x < worldWidth; x++) {
-         stars[x] = stars[x] || [];
-         stars[x][y] = row[x];
-      }
-   }
+  newRow() {
+    for (let x = 0; x < this.worldWidth; x++) {
+      this.row[x] = Math.random() > 0.999;
+    }
+  }
 
-   this.scroll = function() {
-      for (var y = 0; y < worldHeight - 1; y++) {
-         for (var x = 0; x < worldWidth; x++) {
-            stars[x][y] = stars[x][y + 1];
-         }
+  scroll() {
+    for (let y = 0; y < this.worldHeight - 1; y++) {
+      for (let x = 0; x < this.worldWidth; x++) {
+        this.stars[x][y] = this.stars[x][y + 1];
       }
+    }
 
-      newRow();
-      for (var x = 0; x < worldWidth; x++) {
-         stars[x][worldHeight - 1] = row[x];
-      }
-   };
+    this.newRow();
+    for (let x = 0; x < this.worldWidth; x++) {
+      this.stars[x][this.worldHeight - 1] = this.row[x];
+    }
+  }
 
-   this.draw = function(ctx) {
-      for (var x = 0; x < worldWidth; x++) {
-         for (var y = 0; y < worldHeight; y++) {
-            if (stars[x][y])
-               ctx.fillRect(x, y, 1, 1);
-         }
+  draw(ctx) {
+    for (let x = 0; x < this.worldWidth; x++) {
+      for (let y = 0; y < this.worldHeight; y++) {
+        if (this.stars[x][y]) {
+          ctx.fillRect(x, y, 1, 1);
+        }
       }
-   };
+    }
+  }
 }
 
 
-// ========================= Game World ========================================
-function World(canvas, playerImage, enemy1Image, enemy2Image, danceLeftImage, danceRightImage) {
-   var ctx = canvas.getContext('2d');
-   
-   var worldWidth = canvas.clientWidth;
-   var worldHeight = canvas.clientHeight;
+// ========================= World ========================================
+// This tracks all entities (characters, missiles), advances the frames
+// and processes user input.
+class World {
+  constructor(canvas, playerImageSrc, opponent1ImageSrc, opponent2ImageSrc) {
+    this.ctx = canvas.getContext('2d');
+    this.canvas = canvas;
+    this.viewWidth = canvas.clientWidth;
+    this.viewHeight = canvas.clientHeight;
 
-   var space;
+    this.space = new Space(this.viewWidth, this.viewHeight);
+    this.playerDirection = 0;
 
-   var player = new Player(
-      [playerImage],
-      (worldWidth / 2) - (playerImage.width / 2), 
-      worldHeight - playerImage.height - 30,
+    let playerImage = new Image(100, 100);
+    playerImage.src = playerImageSrc;
+
+    let opponent1Image = new Image(100, 100);
+    opponent1Image.src = opponent1ImageSrc;
+
+    let opponent2Image = new Image(100, 100);
+    opponent2Image.src = opponent2ImageSrc;
+
+    this.player = new Player(
+      playerImage,
+      (this.viewWidth / 2) - (playerImage.width / 2), 
+      this.viewHeight - playerImage.height - 30,
       playerImage.width + 30,
       playerImage.height + 30,
-      worldWidth,
+      this.viewWidth,
       0,
-      .5);
+      0.5);
 
-   var enemy1 = new Player([enemy1Image], player.left + 100, 0, enemy1Image.width + 30, enemy1Image.height + 30, canvas.clientWidth, 1, .2);
-   var enemy2 = new Player([enemy2Image], player.left - 100, 0, enemy2Image.width + 30, enemy2Image.height + 30, canvas.clientWidth, -1, .2);
+    this.opponent1 = new Player(
+      opponent1Image,
+      this.player.left + 100,
+      0,
+      opponent1Image.width + 30,
+      opponent1Image.height + 30,
+      this.viewWidth,
+      1,
+      0.2);
 
-   var dancer = new Player([danceLeftImage, danceRightImage], -20, 200, 
-      danceRightImage.width, danceRightImage.height, canvas.clientWidth, 1, .2);
+    this.opponent2 = new Player(
+      opponent2Image,
+      this.player.left - 100,
+      0,
+      opponent2Image.width + 30,
+      opponent2Image.height + 30,
+      this.viewWidth,
+      -1,
+      0.2);
 
-   ctx.font = "20px serif";
-   ctx.fillText("Space to start and pause. Left/Right to move. Up to fire.", worldWidth/2 - 220, worldHeight/2 - 15);   
+    this.playerMissiles = [];
+    this.opponentMissiles = [];
+    this.paused = true;
+    this.timeoutId = 0;
+    this.animationFrameId = 0;
 
-   
-   var playerMissiles = [];
-   var enemyMissiles = [];
-   
-   var tempCanvas = document.createElement('canvas');
-   var tempCtx = tempCanvas.getContext('2d');
-   
-   tempCanvas.width = canvas.width;
-   tempCanvas.height = canvas.height;
+    this.playerScore = 0;
+    this.opponentScore = 0;
+  }
 
-   var drawWorld = function() {
-      ctx.fillStyle = "#000000";
-		ctx.fillRect(0, 0, worldWidth, worldHeight);
-		ctx.fillStyle = "#FFFFFF";
-		
-      space.draw(tempCtx);		
-		player.draw(tempCtx);
-      enemy1.draw(tempCtx);
-      enemy2.draw(tempCtx);
-      dancer.draw(tempCtx);
+  addMissile(left, top, direction, character) {
+    if (character == this.player) {
+      this.playerMissiles.push(
+        new Missile(
+          left, top, direction, this.player, this.opponent1, this.opponent2, this.viewHeight, () => { this.playerScore++; }));
+    } else {
+      this.opponentMissiles.push(
+        new Missile(
+          left, top, direction, this.player, this.opponent1, this.opponent2, this.viewHeight, () => { this.opponentScore++; }));
+    }
+  }
 
-      for (missile of playerMissiles) {
-         missile.draw(tempCtx);
+  draw() {
+    this.animationFrameId = requestAnimationFrame(() => this.draw());
+
+    this.ctx.fillStyle = "#000000";
+    this.ctx.fillRect(0, 0, this.viewWidth, this.viewHeight);
+    this.ctx.fillStyle = "#FFFFFF";
+
+    this.space.draw(this.ctx);		
+    this.player.draw(this.ctx);
+    this.opponent1.draw(this.ctx);
+    this.opponent2.draw(this.ctx);
+
+    for (let i = 0; i < this.playerMissiles.length; i++) {
+      this.playerMissiles[i].draw(this.ctx);
+    }
+
+    for (let i = 0; i < this.opponentMissiles.length; i++) {
+      this.opponentMissiles[i].draw(this.ctx);
+    }
+
+    this.ctx.font = "20px Courier New";
+    this.ctx.fillText("Player   : " + this.playerScore, 10, this.viewHeight - 50); 
+    this.ctx.fillText("Opponents: " + this.opponentScore, 10, this.viewHeight - 30); 
+  }
+
+  nextFrame(timeElapsed) {
+    this.player.move(timeElapsed, this.playerDirection);
+    this.opponent1.move(timeElapsed);
+    this.opponent2.move(timeElapsed);
+
+    if (this.opponentMissiles.length < 4 && Math.random() > 0.99)
+      this.addMissile(this.opponent1.left + this.opponent1.width / 2, this.opponent1.top + this.opponent1.height, -1, this.opponent1);
+
+    if (this.opponentMissiles.length < 4 && Math.random() > 0.99)
+      this.addMissile(this.opponent2.left + this.opponent2.width / 2, this.opponent2.top + this.opponent2.height, -1, this.opponent2);
+
+    this.playerMissiles.forEach((missile, index) => {
+      if (!missile.move(timeElapsed)) {
+        this.playerMissiles.splice(index, 1);
       }
+    });
 
-      for (missile of enemyMissiles) {
-         missile.draw(tempCtx);
+    this.opponentMissiles.forEach((missile, index) => {
+      if (!missile.move(timeElapsed)) {
+        this.opponentMissiles.splice(index, 1);
       }
+    });
 
-      ctx.drawImage(tempCanvas, 0, 0);
-      tempCtx.clearRect(0, 0, canvas.width, canvas.height);
-   };
-   
-   var paused = true;
-   var playerDirection = 0;
-   var animationFrameId;
-   var timeoutId;
-   var lastTick;
-   var timeElapsed = 0;
-   var tick = function() {
-      timeoutId = setTimeout(tick, 0);
+    this.space.scroll();
+  }
 
-      var currTick = Date.now();
+  tick(lastTick, timeElapsed) {
+      let currTick = Date.now();
       timeElapsed = currTick - lastTick;
-      lastTick = currTick;
+      this.timeoutId = setTimeout(() => this.tick(currTick, timeElapsed), 5);
+      this.nextFrame(timeElapsed);
+  };
 
-      player.move(timeElapsed, playerDirection);
-      enemy1.move(timeElapsed);
-      enemy2.move(timeElapsed);
-      dancer.move(timeElapsed);
-
-      if (enemyMissiles.length < 4 && Math.random() > 0.99)
-         enemyMissiles.push(new Missile(enemy1.left + enemy1.width/2, enemy1.top + enemy1.height, -1, isMissileBlocked));
-
-      if (enemyMissiles.length < 4 && Math.random() > 0.99)
-         enemyMissiles.push(new Missile(enemy2.left + enemy2.width/2, enemy2.top + enemy2.height, -1, isMissileBlocked));
-
-      playerMissiles.forEach(function (missile, index) {
-         if (!missile.move(timeElapsed)) {
-            playerMissiles.splice(index, 1);
-         }
-      });
-
-      enemyMissiles.forEach(function (missile, index) {
-         if (!missile.move(timeElapsed)) {
-            enemyMissiles.splice(index, 1);
-         }
-      });
-
-	   space.scroll();
-   };
-
-   var draw = function() {
-      animationFrameId = requestAnimationFrame(draw);
-      drawWorld();      
-   };
-
-   var start = function() {
-      lastTick = Date.now();
-      tick();
-      draw();
-   };
-
-   var pause = function() {
-      cancelAnimationFrame(animationFrameId);
-      clearTimeout(timeoutId);
-   };
-
-   var collisionDetected = function(missile, player) {
-      return (missile.y >= player.top) && (missile.y <= player.top + player.height) &&
-         (missile.x >= player.left) && (missile.x <= player.left + player.width);
-   };
-
-   var isMissileBlocked = function(missile) {
-      // Hitting world's borders
-      if ((missile.direction == 1 && missile.y < 1) || (missile.direction == -1 && missile.y + 16 > worldHeight))
-         return true;
-
-      // Hitting dancer
-      if (missile.direction == 1 && (collisionDetected(missile, dancer)))
-         return true;
-
-      // Hitting intended targets...
-      if (missile.direction == 1 && (collisionDetected(missile, enemy1) || collisionDetected(missile, enemy2))) {
-         missile.explode();
-         return false;
-      }
-
-      if (missile.direction == -1 && collisionDetected(missile, player)) {
-         missile.explode();
-         return false;
-      }
-
-      return false;      
-   };
-
-   this.keydown = function(e) {
-      switch(e.which)
-      {
+  keydown(e) {
+      switch(e.which) {
          case 37: // left
-            playerDirection = -1;
+            this.playerDirection = -1;
             break;
          case 38: // up
-            if (playerMissiles.length < 3)
-               playerMissiles.push(new Missile(player.left + 50, player.top, 1, isMissileBlocked));
+            if (this.playerMissiles.length < 3)
+               this.addMissile(this.player.left + 50, this.player.top, 1, this.player);
             break;
          case 39: // right
-            playerDirection = 1;
+            this.playerDirection = 1;
+            break;
+         case 78:
+            this.tick(Date.now());
+            this.draw();
+            this.paused = !this.paused;
             break;
          case 32: // space
-   			if (!space) {
-   		       space = new Space(worldWidth, worldHeight);
-   			}
-   			if (!paused) {
-   				pause();
-   			} else {
-   				start();
-   			}
-   			paused = !paused;
-   			break;
+          if (this.paused) {
+            // start/resume
+            this.tick(Date.now());
+            this.draw();
+          } else {
+            // pause
+            cancelAnimationFrame(this.animationFrameId);
+            clearTimeout(this.timeoutId);
+          }
+          this.paused = !this.paused;
+          break;
       }
    }
    
-   this.keyup = function(e) {
-      switch(e.which)
-      {
+   keyup(e) {
+      switch(e.which) {
          case 37:
-            playerDirection = 0;
-            break;
          case 39:
-            playerDirection = 0;
-            break;
+            this.playerDirection = 0;
       }   
-   }
-      
-   return this;
+   }  
 }
 
 
 // ================= Set things up ===========================
-var player = new Image(100, 100);
-player.src = 'player.png';
+let world;
 
-var enemy1 = new Image(100, 100);
-enemy1.src = 'enemy1.png';
+window.onkeydown = (e) => {
+  if (e.which == 78) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const root = "./";
+    world = new World(
+      document.getElementById('myCanvas'),
+      urlParams.get('player') ? root + urlParams.get('player') : "smiley1.png",
+      urlParams.get('opponent1') ? root + urlParams.get('opponent1') : "smiley1.png",
+      urlParams.get('opponent2') ? root + urlParams.get('opponent2') : "smiley1.png")
+  }
 
-var enemy2 = new Image(100, 100);
-enemy2.src = 'enemy2.png';
+  world && world.keydown(e);
+};
 
-var danceLeft = new Image(150, 150);
-danceLeft.src = 'danceLeft.png';
-
-var danceRight = new Image(150, 150);
-danceRight.src = 'danceRight.png';
-
-var world = new World(document.getElementById('myCanvas'),
-	player, enemy1, enemy2, danceLeft, danceRight);
-
-window.onkeydown = function(e) {
-   world.keydown(e);
-}
-
-window.onkeyup = function(e) {
-   world.keyup(e);
-}
+window.onkeyup = (e) => {
+  world && world.keyup(e);
+};
 
 </script>
 
