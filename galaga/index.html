@@ -22,11 +22,12 @@
     let getParams = () => {
       const urlParams = new URLSearchParams(window.location.search);
       return {
-        humanImgSrc: urlParams.get('player') ? ROOT_PATH + urlParams.get('player') : "smiley1.png",
-        opponent1ImgSrc: urlParams.get('opponent1') ? ROOT_PATH + urlParams.get('opponent1') : "smiley1.png",
-        opponent2ImgSrc: urlParams.get('opponent2') ? ROOT_PATH + urlParams.get('opponent2') : "smiley1.png",
-        captionUp: urlParams.get('captionup'), 
-        captionDown: urlParams.get('captiondown')};
+        humanImgSrc: ROOT_PATH + (urlParams.get('player') || 'smiley1.png'),
+        opponent1ImgSrc: ROOT_PATH + (urlParams.get('opponent1') || 'smiley1.png'),
+        opponent2ImgSrc: ROOT_PATH + (urlParams.get('opponent2') || 'smiley1.png'),
+        captionUp: urlParams.get('captionup'),
+        captionDown: urlParams.get('captiondown'),
+      };
     };
     let world = new World(document.getElementById('myCanvas'), getParams);
     window.onkeydown = world.keydown.bind(world);
