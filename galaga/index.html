@@ -6,7 +6,7 @@
 </head>
 
 <body>
-  <canvas width="1000" height="600" style="border: solid black;" id="myCanvas"></canvas>
+  <canvas width="1000" height="600" style="border: solid black;" id="game_canvas"></canvas>
   <div><b>[n]ew game<br>[space] to pause/resume<br>&lArr; / &rArr; to move<br>&uArr; to fire</b></div>
   <script src="./player_tracker.js"></script>
   <script src="./missile_tracker.js"></script>
@@ -29,7 +29,7 @@
         captionDown: urlParams.get('captiondown'),
       };
     };
-    let world = new World(document.getElementById('myCanvas'), getParams);
+    let world = new World(document.getElementById('game_canvas'), getParams);
     window.onkeydown = world.keydown.bind(world);
     window.onkeyup = world.keyup.bind(world);
   </script>

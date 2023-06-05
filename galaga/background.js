@@ -21,9 +21,9 @@ class Background {
 
   update(timeElapsed) {
     this.scroll(Math.ceil(SPACE_SPEED * timeElapsed));
-    this.view.ctx.fillStyle = "black";
+    this.view.ctx.fillStyle = '#000000';
     this.view.ctx.fillRect(0, 0, this.view.width, this.view.height);    
-    this.view.ctx.fillStyle = "white";
+    this.view.ctx.fillStyle = '#FFFFFF';
     for (let row = 0; row < this.view.height; row++) {
       for (let col = 0; col < this.view.width; col++) {      
         if (this.stars[row][col]) {

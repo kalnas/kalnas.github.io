@@ -1,33 +1,40 @@
 class Missile {
   constructor(view, player, players, reportHitCallback, captionCallback) {
     this.view = view;
-    this.left = player.isCpu ? player.left + player.image.width / 2 : player.left + 50;
-    this.top = player.isCpu ? player.top + player.image.height : player.top;
-    this.direction = player.isCpu ? 1 : -1;
-    this.has_collided = false;
+    this.radius = 15;
+    this.left = player.left + player.image.width / 2;
+    this.top = player.isCpu
+      ? player.top + player.image.height + this.radius + 1
+      : player.top - this.radius  - 1;
+    this.speed = player.isCpu ? MISSILE_SPEED : -MISSILE_SPEED;
+    this.hasCollided = false;
     this.players = players;
     this.reportHitCallback = reportHitCallback;
     this.caption = captionCallback(player);
+    this.collidedPlayer = undefined;
   }
 
   collided(character) {
-    return (this.top >= character.top)
-      && (this.top <= character.top + character.image.height)
-      && (this.left >= character.left)
-      && (this.left <= character.left + character.image.width);
+    return (this.top + this.radius >= character.top)
+      && (this.top - this.radius <= character.top + character.image.height)
+      && (this.left + this.radius >= character.left)
+      && (this.left - this.radius <= character.left + character.image.width);
   }
 
   update(timeElapsed) {
-    this.top += (this.direction * timeElapsed * MISSILE_SPEED);
+    this.top += (timeElapsed * this.speed);
 
     // Reaching board's borders
-    if (this.top < 1 || this.top + 16 > this.view.height) {
+    if (this.top <= 0 || this.top + this.radius >= this.view.height) {
       return false;
     }
 
-    if (!this.has_collided && this.players.some(player => this.collided(player))) {
-      this.has_collided = true;
-      this.reportHitCallback(this);
+    if (!this.collidedPlayer) {
+      this.collidedPlayer = this.players.find(player => this.collided(player));
+      if (this.collidedPlayer) {
+        this.reportHitCallback(this.collidedPlayer);
+        this.radius *= 3;
+      }
     }
 
     this.draw();
@@ -36,22 +43,22 @@ class Missile {
 
   draw() {
     this.view.ctx.beginPath();
-    if (!this.has_collided) {
-      this.view.ctx.fillStyle = "red";
-      this.view.ctx.arc(this.left, this.top, 15, 0, 2 * Math.PI);
-    } else {
-      let grd = this.view.ctx.createRadialGradient(this.left, this.top, 20, this.left, this.top, 70);
-      grd.addColorStop(0, "red");
-      grd.addColorStop(0.8, "orange");
-      grd.addColorStop(1, "yellow");
+    if (this.collidedPlayer) {
+      let grd = this.view.ctx.createRadialGradient(
+        this.left, this.top, this.radius / 2, // inner circle top/left/radius
+        this.left, this.top, this.radius); // outer circle
+      grd.addColorStop(0, '#990000');
+      grd.addColorStop(1, '#FFA500');
       this.view.ctx.fillStyle = grd;
-      this.view.ctx.arc(this.left, this.top, 50, 0, 2 * Math.PI);
+    } else {
+      this.view.ctx.fillStyle = '#FF0000';
     }
+    this.view.ctx.arc(this.left, this.top, this.radius, 0, /*Tau*/ 6.28);    
     this.view.ctx.fill();
     this.view.ctx.stroke();
 
     if (this.caption) {
-      this.view.ctx.fillStyle = "white";
+      this.view.ctx.fillStyle = '#FFFFFF';
       this.view.ctx.fillText(this.caption, this.left - 10, this.top + 30);
     }
   }
@@ -59,28 +66,33 @@ class Missile {
 
 class MissileTracker {
   constructor(view, players, scoreCallback, captionCallback) {
-    this.missiles = [];
-    this.humanMissiles = 0;
+    this.opponentMissiles = [];
+    this.humanMissiles = [];
+    this.players = players;
+    this.upArrowPressed = false;
+    this.human = players.find(player => !player.isCpu);
 
-    this.newMissile = player => {
-      if (player.isCpu && Math.random() < 0.95) return;
-      if (!player.isCpu && this.humanMissiles >= 2) return;
+    this.newMissile = (missilesArray, player) => {
+      missilesArray.push(new Missile(
+        view, player, this.players, scoreCallback, captionCallback));        
+    };
+  }
 
-      this.missiles.push(new Missile(
-        view, player, players, scoreCallback, captionCallback));
-
-      if (!player.isCpu) this.humanMissiles++;
+  humanFire() {
+    if (this.humanMissiles.length < 2) {
+      this.newMissile(this.humanMissiles, this.human);
     }
   }
 
   update(timeElapsed) {
-    // Remove any missiles that go out of scope, and update their count
-    this.missiles = this.missiles.filter(missile => {
-      let keepMissile = missile.update(timeElapsed);
-      if (!keepMissile && missile.direction == -1) {
-        this.humanMissiles--;
+    for (let player of this.players) {
+      if (player.isCpu && Math.random() > 0.95) {
+        this.newMissile(this.opponentMissiles, player);
       }
-      return keepMissile;
-    });
+    }
+
+    // Remove any missiles that go out of scope
+    this.opponentMissiles = this.opponentMissiles.filter(missile => missile.update(timeElapsed));
+    this.humanMissiles = this.humanMissiles.filter(missile => missile.update(timeElapsed));
   }
 }
