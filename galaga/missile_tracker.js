@@ -47,7 +47,7 @@ class Missile {
       let grd = this.view.ctx.createRadialGradient(
         this.left, this.top, this.radius / 2, // inner circle top/left/radius
         this.left, this.top, this.radius); // outer circle
-      grd.addColorStop(0, '#990000');
+      grd.addColorStop(0, '#FF0000');
       grd.addColorStop(1, '#FFA500');
       this.view.ctx.fillStyle = grd;
     } else {

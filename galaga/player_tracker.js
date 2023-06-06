@@ -20,7 +20,7 @@ class Player {
       this.direction *= -1;
     }
 
-    this.view.ctx.drawImage(this.image, this.left, this.top);
+    this.view.ctx.drawImage(this.image, this.left, this.top, this.image.width, this.image.height);
   }
 }
 

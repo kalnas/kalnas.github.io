@@ -14,7 +14,7 @@
   <script src="./world.js"></script>
   <script>
     const ROOT_PATH = "./";
-    const HUMAN_SPEED = 0.5; // pixels per second
+    const HUMAN_SPEED = 0.5; // pixels per millisecond
     const OPPONENT_SPEED = 0.3;
     const MISSILE_SPEED = 0.4;
     const SPACE_SPEED = 0.1;
@@ -22,9 +22,9 @@
     let getParams = () => {
       const urlParams = new URLSearchParams(window.location.search);
       return {
-        humanImgSrc: ROOT_PATH + (urlParams.get('player') || 'smiley1.png'),
-        opponent1ImgSrc: ROOT_PATH + (urlParams.get('opponent1') || 'smiley1.png'),
-        opponent2ImgSrc: ROOT_PATH + (urlParams.get('opponent2') || 'smiley1.png'),
+        humanImgSrc: urlParams.get('player') ? ROOT_PATH + urlParams.get('player') : 'smiley1.png',
+        opponent1ImgSrc: urlParams.get('opponent1') ? ROOT_PATH + urlParams.get('opponent1') : 'smiley1.png',
+        opponent2ImgSrc: urlParams.get('opponent2') ? ROOT_PATH + urlParams.get('opponent2') : 'smiley1.png',
         captionUp: urlParams.get('captionup'),
         captionDown: urlParams.get('captiondown'),
       };
