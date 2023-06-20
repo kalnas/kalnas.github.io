@@ -24,7 +24,7 @@ class World {
 
     this.background = new Background(this.view);
     this.playerTracker = new PlayerTracker(
-      this.view, params.humanImgSrc, params.opponent1ImgSrc, params.opponent2ImgSrc);
+      this.view, params.humanImg, params.opponent1Img, params.opponent2Img);
 
     let humanScore = 0;
     let opponentScore = 0;
@@ -35,9 +35,16 @@ class World {
     };
   
     let scoreCallback = player => player.isCpu ? humanScore++ : opponentScore++;
-    let captionCallback = player => Math.random() > 0.66 && (player.isCpu ? params.captionDown : params.captionUp);
     this.missileTracker = new MissileTracker(
-      this.view, this.playerTracker.players, scoreCallback.bind(this), captionCallback.bind(this));
+      this.view,
+      this.playerTracker.players,
+      params.upMissile,
+      params.downMissile,
+      params.explodedMissile,
+      params.captionUp,
+      params.captionDown,
+      scoreCallback.bind(this)
+    );
   }
 
   animate(timeStamp) {

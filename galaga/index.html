@@ -18,15 +18,95 @@
     const OPPONENT_SPEED = 0.3;
     const MISSILE_SPEED = 0.4;
     const SPACE_SPEED = 0.1;
+    const MISSILE_RADIUS = 15;
+
+    let drawMissile = (pointDown) => {
+      let missileCanvas = new OffscreenCanvas(MISSILE_RADIUS * 2 - 5, MISSILE_RADIUS * 2);
+      let missileCtx = missileCanvas.getContext('2d');
+
+      if (pointDown) {
+        missileCtx.translate(0, missileCanvas.height);
+        missileCtx.scale(1, -1);
+      }
+
+      const gradient = missileCtx.createLinearGradient(0, 0, MISSILE_RADIUS * 2, 0);
+      gradient.addColorStop(0, '#FFFFFF');
+      gradient.addColorStop(0.5, '#FF0000');
+      gradient.addColorStop(1, '#FFFFFF');
+      missileCtx.fillStyle = gradient;
+      missileCtx.moveTo(missileCanvas.width / 2, 0);
+      missileCtx.lineTo(0, missileCanvas.height);
+      missileCtx.lineTo(missileCanvas.width / 2, missileCanvas.height * 0.75);
+      missileCtx.lineTo(missileCanvas.width, missileCanvas.height);
+      missileCtx.fill();
+      return missileCanvas;
+    };
+
+    let drawExplodedMissile = () => {
+      let explodedMissile = new OffscreenCanvas(MISSILE_RADIUS * 6, MISSILE_RADIUS * 6);
+      let explodedMissileCtx = explodedMissile.getContext('2d');
+      let grd = explodedMissileCtx.createRadialGradient(
+        MISSILE_RADIUS * 3, MISSILE_RADIUS * 3, MISSILE_RADIUS * 1.5, // inner circle top/left/radius
+        MISSILE_RADIUS * 3, MISSILE_RADIUS * 3, MISSILE_RADIUS * 3);  // outer circle
+      grd.addColorStop(0, '#FF0000');
+      grd.addColorStop(1, '#FFA500');
+      explodedMissileCtx.fillStyle = grd;
+      explodedMissileCtx.arc(MISSILE_RADIUS * 3, MISSILE_RADIUS * 3, MISSILE_RADIUS * 3, 0,  /*Tau*/ 6.28);
+      explodedMissileCtx.fill();
+      return explodedMissile;
+    };
+
+    // Draw smiley face player as the default
+    let smiley = (() => {      
+      let dia = (pct) => (pct / 100) * 95; // vary the last num to scale size up/down
+      let smiley = new OffscreenCanvas(dia(100), dia(100));
+      let smileyCtx = smiley.getContext("2d");
+      smileyCtx.beginPath();
+      // circle
+      smileyCtx.arc(dia(50), dia(50), dia(50), 0, /*Tau*/ 6.28, false);
+      smileyCtx.fillStyle = '#F9DC28';
+      smileyCtx.fill();
+      smileyCtx.lineWidth = 2;
+      smileyCtx.strokeStyle = '#000000';
+      smileyCtx.stroke();      
+      // eyes
+      smileyCtx.fillStyle = '#000000';
+      smileyCtx.beginPath();
+      for (let left of [dia(35) - 3, dia(65) - 3]) {
+        smileyCtx.moveTo(left, dia(35));
+        smileyCtx.arc(left, dia(35) + 3, 3, 0, /*Tau*/ 6.28);
+      }
+      smileyCtx.lineWidth = 3;
+      smileyCtx.fill();
+      // mouth
+      let shift = 3;
+      smileyCtx.moveTo(dia(20 - shift), dia(60));
+      smileyCtx.bezierCurveTo(
+        /*x1*/dia(35 - shift), /*y1*/dia(90), // control coords 1
+        /*x2*/dia(65 - shift), /*y2*/dia(90), // control coords 2
+        dia(80 - shift), dia(60)); // end coords        
+      smileyCtx.stroke();
+      return smiley;
+    })();
+ 
 
     let getParams = () => {
       const urlParams = new URLSearchParams(window.location.search);
+      let getImg = (imgSource) => {
+        if (!urlParams.get(imgSource)) return smiley;
+        let img = new Image(100, 100);
+        img.src = ROOT_PATH + urlParams.get(imgSource);
+        return img;
+      };
       return {
-        humanImgSrc: urlParams.get('player') ? ROOT_PATH + urlParams.get('player') : 'smiley1.png',
-        opponent1ImgSrc: urlParams.get('opponent1') ? ROOT_PATH + urlParams.get('opponent1') : 'smiley1.png',
-        opponent2ImgSrc: urlParams.get('opponent2') ? ROOT_PATH + urlParams.get('opponent2') : 'smiley1.png',
+        humanImg: getImg('player'),
+        opponent1Img: getImg('opponent1'),
+        opponent2Img: getImg('opponent2'),
         captionUp: urlParams.get('captionup'),
         captionDown: urlParams.get('captiondown'),
+        upMissile: drawMissile(),
+        downMissile: drawMissile(/*pointDown*/ true),
+        explodedMissile: drawExplodedMissile(),
       };
     };
     let world = new World(document.getElementById('game_canvas'), getParams);
