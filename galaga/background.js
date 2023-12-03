@@ -17,7 +17,7 @@ class Background {
     this.bgCtx.putImageData(imageData, 0, 0); // Paste the shifted region
 
     this.bgCtx.fillStyle = '#FFFFFF'; // Create new stars in the remaining region
-    for (let row = this.bgCanvas.height - shift + 1; row <= this.bgCanvas.height; row++) {
+    for (let row = this.bgCanvas.height - shift; row <= this.bgCanvas.height; row++) {
       for (let col = 0; col < this.bgCanvas.width; col++) {      
         if (Math.random() > 0.9996) {
           this.bgCtx.fillRect(col, row, 2, 1);
