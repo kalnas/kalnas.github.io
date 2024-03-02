@@ -1,7 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-
+  <head>
+  <script>
+  function RedirectMe() {
+     window.location = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
+  }
+  </script>
   <!-- Basic Page Needs
   –––––––––––––––––––––––––––––––––––––––––––––––––– -->
   <meta charset="utf-8">
@@ -82,8 +86,7 @@
             <input type="checkbox">
             <span class="label-body">Send a copy to yourself</span>
           </label>
-          <button class="button-primary" onclick="function() { window.location = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'; }"> Submit </button>
-<!--           <input class="button-primary" onclick="function() { window.location = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'; }" type="submit" value="Submit"> -->
+          <button class="button-primary" onclick="RedirectMe()"> Submit </button>
         </form>
         
       </div>
